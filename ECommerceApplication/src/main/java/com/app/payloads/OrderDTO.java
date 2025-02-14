@@ -16,6 +16,7 @@ public class OrderDTO {
 	private Long orderId;
 	private String email;
 	private List<OrderItemDTO> orderItems = new ArrayList<>();
+    private List<CouponDTO> coupons = new ArrayList<>();
 	private LocalDate orderDate;
 	private PaymentDTO payment;
 	private Double totalAmount;

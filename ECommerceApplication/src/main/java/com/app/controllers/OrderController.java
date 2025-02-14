@@ -28,9 +28,9 @@ public class OrderController {
 	@Autowired
 	public OrderService orderService;
 	
-	@PostMapping("/public/users/{email}/carts/{cartId}/payments/{paymentMethod}/order")
-	public ResponseEntity<OrderDTO> orderProducts(@PathVariable String email, @PathVariable Long cartId, @PathVariable String paymentMethod) {
-		OrderDTO order = orderService.placeOrder(email, cartId, paymentMethod);
+	@PostMapping("/public/users/{email}/carts/{cartId}/coupons/{couponId}/payments/{paymentMethod}/order")
+	public ResponseEntity<OrderDTO> orderProducts(@PathVariable String email, @PathVariable Long cartId, @PathVariable Long couponId, @PathVariable String paymentMethod) {
+		OrderDTO order = orderService.placeOrder(email, cartId, couponId, paymentMethod);
 		
 		return new ResponseEntity<OrderDTO>(order, HttpStatus.CREATED);
 	}
@@ -53,6 +53,19 @@ public class OrderController {
 		
 		return new ResponseEntity<List<OrderDTO>>(orders, HttpStatus.FOUND);
 	}
+
+    @GetMapping("/public/coupons/{couponId}/orders")
+    public ResponseEntity<OrderResponse> getOrdersByCoupon(
+            @PathVariable Long couponId,
+            @RequestParam(name = "pageNumber", defaultValue = AppConstants.PAGE_NUMBER, required = false) Integer pageNumber,
+            @RequestParam(name = "pageSize", defaultValue = AppConstants.PAGE_SIZE, required = false) Integer pageSize,
+            @RequestParam(name = "sortBy", defaultValue = AppConstants.SORT_ORDERS_BY, required = false) String sortBy,
+            @RequestParam(name = "sortOrder", defaultValue = AppConstants.SORT_DIR, required = false) String sortOrder) {
+    
+        OrderResponse orderResponse = orderService.getOrdersByCoupon(couponId, pageNumber, pageSize, sortBy, sortOrder);
+    
+        return new ResponseEntity<>(orderResponse, HttpStatus.FOUND);
+    }
 	
 	@GetMapping("public/users/{email}/orders/{orderId}")
 	public ResponseEntity<OrderDTO> getOrderByUser(@PathVariable String email, @PathVariable Long orderId) {
