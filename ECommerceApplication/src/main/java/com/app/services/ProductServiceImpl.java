@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.app.entites.Cart;
 import com.app.entites.Category;
+import com.app.entites.Brand;
 import com.app.entites.Product;
 import com.app.exceptions.APIException;
 import com.app.exceptions.ResourceNotFoundException;
@@ -25,6 +26,7 @@ import com.app.payloads.ProductResponse;
 import com.app.repositories.CartRepo;
 import com.app.repositories.CategoryRepo;
 import com.app.repositories.ProductRepo;
+import com.app.repositories.BrandRepo;
 
 import jakarta.transaction.Transactional;
 
@@ -37,6 +39,9 @@ public class ProductServiceImpl implements ProductService {
 
 	@Autowired
 	private CategoryRepo categoryRepo;
+
+	@Autowired
+	private BrandRepo brandRepo;
 
 	@Autowired
 	private CartRepo cartRepo;
@@ -54,10 +59,13 @@ public class ProductServiceImpl implements ProductService {
 	private String path;
 
 	@Override
-	public ProductDTO addProduct(Long categoryId, Product product) {
+	public ProductDTO addProduct(Long categoryId, Long brandId, Product product) {
 
 		Category category = categoryRepo.findById(categoryId)
 				.orElseThrow(() -> new ResourceNotFoundException("Category", "categoryId", categoryId));
+
+		Brand brand = brandRepo.findById(brandId)
+				.orElseThrow(() -> new ResourceNotFoundException("Brand", "brandId", brandId));
 
 		boolean isProductNotPresent = true;
 
@@ -76,6 +84,8 @@ public class ProductServiceImpl implements ProductService {
 			product.setImage("default.png");
 
 			product.setCategory(category);
+
+			product.setBrand(brand);
 
 			double specialPrice = product.getPrice() - ((product.getDiscount() * 0.01) * product.getPrice());
 			product.setSpecialPrice(specialPrice);
@@ -133,6 +143,41 @@ public class ProductServiceImpl implements ProductService {
 
 		if (products.size() == 0) {
 			throw new APIException(category.getCategoryName() + " category doesn't contain any products !!!");
+		}
+
+		List<ProductDTO> productDTOs = products.stream().map(p -> modelMapper.map(p, ProductDTO.class))
+				.collect(Collectors.toList());
+
+		ProductResponse productResponse = new ProductResponse();
+
+		productResponse.setContent(productDTOs);
+		productResponse.setPageNumber(pageProducts.getNumber());
+		productResponse.setPageSize(pageProducts.getSize());
+		productResponse.setTotalElements(pageProducts.getTotalElements());
+		productResponse.setTotalPages(pageProducts.getTotalPages());
+		productResponse.setLastPage(pageProducts.isLast());
+
+		return productResponse;
+	}
+
+	@Override
+	public ProductResponse searchByBrand(Long brandId, Integer pageNumber, Integer pageSize, String sortBy,
+			String sortOrder) {
+
+		Brand brand = brandRepo.findById(brandId)
+				.orElseThrow(() -> new ResourceNotFoundException("Brand", "brandId", brandId));
+
+		Sort sortByAndOrder = sortOrder.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending()
+				: Sort.by(sortBy).descending();
+
+		Pageable pageDetails = PageRequest.of(pageNumber, pageSize, sortByAndOrder);
+
+		Page<Product> pageProducts = productRepo.findByBrand(brand, pageDetails);
+
+		List<Product> products = pageProducts.getContent();
+
+		if (products.size() == 0) {
+			throw new APIException(brand.getBrandName() + " brand doesn't contain any products !!!");
 		}
 
 		List<ProductDTO> productDTOs = products.stream().map(p -> modelMapper.map(p, ProductDTO.class))
